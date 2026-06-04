@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
 <style>
     :root {
-        /* Light Mode (Default) */
         --bg: #faf9f7; --bg2: #f4f2ee; --surface: #ffffff; --surface2: #f8f7f4;
         --border: #e8e3db; --border2: #d9d2c5; --navy: #1a2b4a; --navy2: #243758;
         --gold: #b8955a; --gold-light: rgba(184,149,90,0.12); --gold-glow: rgba(184,149,90,0.25);
@@ -64,8 +63,6 @@
     .spinner { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; animation: spin .55s linear infinite; display: none; flex-shrink: 0; }
     #btn-signin.loading .spinner { display: block; }
     #btn-signin.loading .signin-label { opacity: .7; }
-
-    /* MODEL BADGE on login */
     .model-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 20px; padding: 7px 12px; background: var(--gold-light); border: 1px solid rgba(184,149,90,0.3); border-radius: 3px; font-size: 11px; color: var(--gold); font-family: var(--mono); letter-spacing: .04em; }
     .model-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 
@@ -145,24 +142,42 @@
     .msg.user .bubble { background: var(--navy); color: #fff; border-radius: 4px 4px 2px 4px; }
     .msg-meta { font-size: 10.5px; color: var(--text3); padding: 0 2px; font-family: var(--mono); }
 
+    /* ── WEB SEARCH ─────────────────────────────────────── */
     .ws-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-top: 8px; padding: 7px 14px;
-    background: var(--gold-light); border: 1px solid rgba(184,149,90,0.35);
-    border-radius: 3px; cursor: pointer; font-family: var(--sans);
-    font-size: 12px; font-weight: 600; color: var(--gold);
-    letter-spacing: .03em; transition: background .15s, border-color .15s;
-}
-.ws-btn:hover { background: rgba(184,149,90,0.2); border-color: var(--gold); }
-.ws-btn:disabled { opacity: .5; cursor: not-allowed; }
-.ws-label { font-size: 10.5px; color: var(--text3); font-family: var(--mono); margin: 10px 0 8px; }
-.ws-label em { color: var(--gold); font-style: normal; }
-.ws-list { display: flex; flex-direction: column; gap: 10px; }
-.ws-item { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; padding: 10px 13px; }
-.ws-title { font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; display: block; margin-bottom: 3px; }
-.ws-title:hover { color: var(--gold); text-decoration: underline; }
-.ws-url { font-size: 10.5px; color: var(--green); font-family: var(--mono); margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-snippet { font-size: 12px; color: var(--text2); line-height: 1.55; }
+        display: inline-flex; align-items: center; gap: 6px;
+        margin-top: 8px; padding: 7px 14px;
+        background: var(--gold-light); border: 1px solid rgba(184,149,90,0.35);
+        border-radius: 3px; cursor: pointer; font-family: var(--sans);
+        font-size: 12px; font-weight: 600; color: var(--gold);
+        letter-spacing: .03em; transition: background .15s, border-color .15s;
+    }
+    .ws-btn:hover { background: rgba(184,149,90,0.2); border-color: var(--gold); }
+    .ws-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Searching animation */
+    .ws-searching {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 2px; font-size: 13px;
+        color: var(--text2); font-family: var(--sans);
+    }
+    .ws-searching-dots { display: flex; gap: 5px; align-items: center; }
+    .ws-searching-dots span {
+        display: block; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--gold); opacity: 0.35;
+        animation: bounce 1.1s infinite;
+    }
+    .ws-searching-dots span:nth-child(2) { animation-delay: .18s; }
+    .ws-searching-dots span:nth-child(3) { animation-delay: .36s; }
+    .ws-searching-text { font-size: 12.5px; color: var(--text2); font-style: italic; }
+
+    .ws-label { font-size: 10.5px; color: var(--text3); font-family: var(--mono); margin: 10px 0 8px; }
+    .ws-label em { color: var(--gold); font-style: normal; }
+    .ws-list { display: flex; flex-direction: column; gap: 10px; }
+    .ws-item { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; padding: 10px 13px; }
+    .ws-title { font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; display: block; margin-bottom: 3px; }
+    .ws-title:hover { color: var(--gold); text-decoration: underline; }
+    .ws-url { font-size: 10.5px; color: var(--green); font-family: var(--mono); margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ws-snippet { font-size: 12px; color: var(--text2); line-height: 1.55; }
 
     /* Sources */
     .src-btn { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; font-size: 11px; color: var(--text3); font-family: var(--mono); padding: 0; transition: color .15s; }
@@ -180,41 +195,31 @@
     .src-preview { font-size: 11px; color: var(--text3); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
     /* ── RELATED METRICS ─────────────────────────────────── */
-.related-metrics-wrap { margin-top: 12px; max-width: 680px; }
-.related-metrics-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.related-metrics-icon { font-size: 13px; }
-.related-metrics-title { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
-.related-metrics-badge { font-size: 10px; color: var(--text3); background: var(--bg2); border: 1px solid var(--border2); border-radius: 3px; padding: 2px 7px; font-family: var(--mono); }
-.related-metrics-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; overflow: hidden; font-size: 12.5px; }
-.related-metrics-table th { padding: 8px 13px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); background: var(--bg2); border-bottom: 1px solid var(--border2); }
-.related-metrics-table td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.related-metrics-table tr:last-child td { border-bottom: none; }
-.related-metrics-table tr:hover td { background: var(--bg2); }
-.rm-name { font-weight: 600; color: var(--navy); font-size: 12.5px; cursor: pointer; }
-.rm-name:hover { color: var(--gold); text-decoration: underline; }
-.rm-badge { display: inline-block; font-size: 9.5px; font-family: var(--mono); padding: 2px 6px; border-radius: 3px; margin-left: 6px; font-weight: 500; }
-.rm-badge.related { background: rgba(39,174,96,0.12); color: var(--green); border: 1px solid rgba(39,174,96,0.25); }
-.rm-def { color: var(--text2); line-height: 1.55; font-size: 12px; }
-.rm-table-tag { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+    .related-metrics-wrap { margin-top: 12px; max-width: 680px; }
+    .related-metrics-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .related-metrics-icon { font-size: 13px; }
+    .related-metrics-title { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text2); }
+    .related-metrics-badge { font-size: 10px; color: var(--text3); background: var(--bg2); border: 1px solid var(--border2); border-radius: 3px; padding: 2px 7px; font-family: var(--mono); }
+    .related-metrics-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; overflow: hidden; font-size: 12.5px; }
+    .related-metrics-table th { padding: 8px 13px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); background: var(--bg2); border-bottom: 1px solid var(--border2); }
+    .related-metrics-table td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .related-metrics-table tr:last-child td { border-bottom: none; }
+    .related-metrics-table tr:hover td { background: var(--bg2); }
+    .rm-name { font-weight: 600; color: var(--navy); font-size: 12.5px; cursor: pointer; }
+    .rm-name:hover { color: var(--gold); text-decoration: underline; }
+    .rm-badge { display: inline-block; font-size: 9.5px; font-family: var(--mono); padding: 2px 6px; border-radius: 3px; margin-left: 6px; font-weight: 500; }
+    .rm-badge.related { background: rgba(39,174,96,0.12); color: var(--green); border: 1px solid rgba(39,174,96,0.25); }
+    .rm-def { color: var(--text2); line-height: 1.55; font-size: 12px; }
+    .rm-table-tag { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+    .rm-more { color: var(--gold); cursor: pointer; font-size: 11px; font-weight: 500; text-decoration: underline; white-space: nowrap; }
+    .rm-more:hover { opacity: 0.75; }
 
-    .rm-more {
-    color: var(--gold);
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 500;
-    text-decoration: underline;
-    white-space: nowrap;
-}
-.rm-more:hover { opacity: 0.75; }
-
-    /* Typing */
+    /* Typing indicator */
     .typing-wrap { padding: 4px 0; }
     .typing { display: flex; gap: 5px; align-items: center; padding: 2px 0; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: bounce 1.1s infinite; }
     .dot:nth-child(2) { animation-delay: .18s; }
     .dot:nth-child(3) { animation-delay: .36s; }
-
-    
 
     /* ── INPUT BAR ────────────────────────────────────────── */
     #inputbar { flex-shrink: 0; padding: 14px 24px 18px; background: var(--bg); border-top: 1px solid var(--border); }
@@ -363,8 +368,7 @@
 
 <script>
 // ── CONFIG ─────────────────────────────────────────────
-// const API   = 'https://ask-data-response-model-gxb7aagkhqgpgvdr.canadacentral-01.azurewebsites.net'
-const API = 'https://anuritchatbackend.vercel.app';    
+const API   = 'https://anuritchatbackend.vercel.app';
 const TOP_K = 6;
 
 // ── STATE ──────────────────────────────────────────────
@@ -372,6 +376,10 @@ let sess = null;
 let busy = false;
 let activeConversationId = null;
 let conversations = [];
+
+// ── FIX: safe store for web-search data (avoids JSON in HTML attributes) ──
+// keyed by btnId → { question, answer, resId }
+const WS_STORE = new Map();
 
 // ── LOCAL STORAGE ──────────────────────────────────────
 function saveSession() { if (sess) localStorage.setItem('anuritSession', JSON.stringify(sess)); }
@@ -398,7 +406,9 @@ function toggleTheme() {
 
 // ── HELPERS ────────────────────────────────────────────
 function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function showErr(msg) {
     const el = document.getElementById('lerr');
@@ -407,11 +417,8 @@ function showErr(msg) {
 
 // ── INIT ───────────────────────────────────────────────
 window.onload = () => {
-    // Apply saved theme (default light)
     const savedTheme = localStorage.getItem('anuritTheme') || 'light';
     setTheme(savedTheme);
-
-    // Auto-login if session saved
     if (loadSession()) {
         bootApp();
     } else {
@@ -455,63 +462,89 @@ async function doLogin() {
     }
 }
 
-async function doWebSearch(btnWrapperId, resId, question, answer) {
-    const btn = document.querySelector(`#${btnWrapperId} .ws-btn`);
-    const res = document.getElementById(resId);
-    if (!btn || !res) return;
-
-    btn.disabled = true;
-    btn.textContent = '⏳ Searching…';
-
-    try {
-        const r = await fetch(`${API}/api/web-search`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
-            body: JSON.stringify({ question, answer })
-        });
-        const d = await r.json();
-        if (!r.ok || !d.success) throw new Error(d.error || 'Search failed');
-
-        if (!d.results?.length) {
-            res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">No results found for "<em>${esc(d.query)}</em>"</p>`;
-            btn.style.display = 'none';
-            return;
-        }
-
-        const items = d.results.map(r => `
-            <div class="ws-item">
-                <a class="ws-title" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
-                <div class="ws-url">${esc(r.url)}</div>
-                ${r.content ? `<div class="ws-snippet">${esc(r.content.slice(0, 160))}…</div>` : ''}
-            </div>`).join('');
-
-        res.innerHTML = `
-            <div class="ws-label">Results for: <em>${esc(d.query)}</em></div>
-            <div class="ws-list">${items}</div>`;
-        btn.style.display = 'none';
-
-    } catch (e) {
-        btn.textContent = '🔍 Find Web Examples';
-        btn.disabled = false;
-        res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">${esc(e.message)}</p>`;
-    }
-    scrollBottom();
-}
-
+// ── WEB SEARCH ─────────────────────────────────────────
+// FIX: pass only a plain btnId — question/answer stored safely in WS_STORE
 function appendWebSearchButton(box, question, answer) {
-    const btnId = 'wsb-' + Date.now();
-    const resId = 'wsr-' + Date.now();
+    const btnId = 'wsb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    const resId = 'wsr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+
+    // Store data in JS Map — safe no matter what characters are in question/answer
+    WS_STORE.set(btnId, { question, answer, resId });
+
     box.insertAdjacentHTML('beforeend', `
         <div class="msg assistant" id="${btnId}">
             <div class="avatar" style="visibility:hidden">A</div>
             <div class="msg-body">
-                <button class="ws-btn" onclick="doWebSearch('${btnId}','${resId}',${JSON.stringify(question)},${JSON.stringify(answer)})">
+                <button class="ws-btn" data-btn-id="${btnId}" onclick="doWebSearch(this.dataset.btnId)">
                     🔍 Find Web Examples
                 </button>
                 <div id="${resId}"></div>
             </div>
         </div>`);
-}    
+    scrollBottom();
+}
+
+async function doWebSearch(btnId) {
+    const stored = WS_STORE.get(btnId);
+    if (!stored) return;
+    const { question, answer, resId } = stored;
+
+    const wrapper = document.getElementById(btnId);
+    const btn = wrapper ? wrapper.querySelector('.ws-btn') : null;
+    const res = document.getElementById(resId);
+    if (!btn || !res) return;
+
+    // FIX: hide button immediately and show blinking "Searching" animation
+    btn.style.display = 'none';
+    res.innerHTML = `
+        <div class="ws-searching">
+            <div class="ws-searching-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <span class="ws-searching-text">Searching the web…</span>
+        </div>`;
+    scrollBottom();
+
+    try {
+        const r = await fetch(`${API}/api/web-search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sess.apiKey}`
+            },
+            // FIX: JSON.stringify in body is safe — only the btnId attr was the problem
+            body: JSON.stringify({ question, answer })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.error || 'Search failed');
+
+        if (!d.results || !d.results.length) {
+            res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">No results found for "<em>${esc(d.query)}</em>"</p>`;
+            WS_STORE.delete(btnId);
+            return;
+        }
+
+        const items = d.results.map(item => `
+            <div class="ws-item">
+                <a class="ws-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
+                <div class="ws-url">${esc(item.url)}</div>
+                ${item.content ? `<div class="ws-snippet">${esc(item.content.slice(0, 160))}…</div>` : ''}
+            </div>`).join('');
+
+        res.innerHTML = `
+            <div class="ws-label">Results for: <em>${esc(d.query)}</em></div>
+            <div class="ws-list">${items}</div>`;
+
+        WS_STORE.delete(btnId); // cleanup
+
+    } catch (e) {
+        res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">${esc(e.message)}</p>`;
+        // Restore button so user can retry
+        btn.style.display = '';
+        btn.disabled = false;
+    }
+    scrollBottom();
+}
 
 // ── BOOT & LOGOUT ──────────────────────────────────────
 function bootApp() {
@@ -528,6 +561,7 @@ function bootApp() {
 function doLogout() {
     clearSession();
     sess = null; busy = false; activeConversationId = null; conversations = [];
+    WS_STORE.clear();
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').classList.remove('on');
     document.getElementById('f-apikey').value = '';
@@ -538,24 +572,24 @@ function doLogout() {
     document.getElementById('retrieved-count').textContent = '';
     document.getElementById('history-list').innerHTML = '';
 }
-    // ── RELATED METRICS ────────────────────────────────────
+
+// ── RELATED METRICS ────────────────────────────────────
 function buildRelatedMetricsHtml(metrics) {
     if (!metrics || !metrics.length) return '';
     const rows = metrics.map(m => {
         const name = esc(m.measure || '');
         const fullDef = m.shortDescription || '';
         const truncated = fullDef.length > 120;
+        const safeName = (m.measure || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         const defDisplay = truncated
-    ? esc(fullDef.slice(0, 120)) + `... <span class="rm-more" onclick="askRelatedMetric('${name.replace(/'/g,"\\'")}')">More...</span>`
-    : esc(fullDef);
-        const tbl  = m.table ? `<div class="rm-table-tag">${esc(m.table)}</div>` : '';
+            ? esc(fullDef.slice(0, 120)) + `... <span class="rm-more" onclick="askRelatedMetric('${safeName}')">More...</span>`
+            : esc(fullDef);
+        const tbl   = m.table ? `<div class="rm-table-tag">${esc(m.table)}</div>` : '';
         const score = m.confidenceScore != null
             ? `<span style="font-size:10px;color:var(--text3);font-family:var(--mono);float:right">${m.confidenceScore}%</span>` : '';
         return `<tr>
             <td>
-                <span class="rm-name" onclick="askRelatedMetric('${name.replace(/'/g,"\\'")}')">
-                    ${name}
-                </span>
+                <span class="rm-name" onclick="askRelatedMetric('${safeName}')">${name}</span>
                 <span class="rm-badge related">Related</span>
                 ${tbl}
             </td>
@@ -569,9 +603,7 @@ function buildRelatedMetricsHtml(metrics) {
             <span class="related-metrics-badge">Associated operational metrics</span>
         </div>
         <table class="related-metrics-table">
-            <thead>
-                <tr><th>Metric</th><th>Definition</th></tr>
-            </thead>
+            <thead><tr><th>Metric</th><th>Definition</th></tr></thead>
             <tbody>${rows}</tbody>
         </table>
     </div>`;
@@ -795,12 +827,13 @@ async function send() {
             setActiveHistItem(activeConversationId);
         }
 
-        if (d.sources?.length) {
+        if (d.sources && d.sources.length) {
             document.getElementById('retrieved-count').textContent =
                 `· ${d.sources.length} source${d.sources.length !== 1 ? 's' : ''} retrieved`;
         }
 
         document.getElementById(tid)?.remove();
+
         const answer = cleanAnswer(d.answer || '', d.sources || []);
         appendMsg({
             role: 'assistant',
@@ -809,10 +842,10 @@ async function send() {
             relatedMetrics: d.relatedMetrics || []
         }, msgbox);
 
+        // Append web search button after answer — safe because WS_STORE holds the data
         if (d.answer && d.answer.length > 20) {
-        appendWebSearchButton(msgbox, rawQ, d.answer);
-      }
-        
+            appendWebSearchButton(msgbox, rawQ, d.answer);
+        }
 
     } catch (e) {
         document.getElementById(tid)?.remove();
@@ -828,10 +861,7 @@ async function send() {
 // ── CLEAN ANSWER ───────────────────────────────────────
 function cleanAnswer(answer, sources) {
     if (!answer) return answer;
-    // Strip citation markers like [1], [2,3], etc.
     let cleaned = answer.replace(/\[\s*\d+(?:\s*,\s*\d+)*\s*\]/g, '').trim();
-
-    // Detect unhelpful fallback responses
     const fallbackPatterns = [
         /the (provided |given |available )?context does not (define|contain|mention|explain|include|describe|have|provide)/i,
         /is not (defined|mentioned|described|explained|included) in the (provided |given |available )?context/i,
@@ -843,7 +873,6 @@ function cleanAnswer(answer, sources) {
     if (isFallback && sources.length > 0) {
         cleaned = "The information is available in your documents — here's what was found in the relevant sections. You may want to rephrase your question with slightly different wording for a more targeted answer.";
     }
-
     return cleaned.replace(/\s{2,}/g, ' ').trim();
 }
 
@@ -857,7 +886,7 @@ function appendMsg(msg, box) {
     const now    = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     let srcHtml = '';
-    if (!isUser && msg.sources?.length) {
+    if (!isUser && msg.sources && msg.sources.length) {
         const uid   = 'sp' + Date.now() + Math.random().toString(36).slice(2, 6);
         const items = msg.sources.map((s, i) => `
             <div class="src-item">
@@ -875,7 +904,7 @@ function appendMsg(msg, box) {
             <div class="src-panel" id="${uid}">${items}</div>`;
     }
 
-    const relatedMetricsHtml = (!isUser && msg.relatedMetrics?.length)
+    const relatedMetricsHtml = (!isUser && msg.relatedMetrics && msg.relatedMetrics.length)
         ? buildRelatedMetricsHtml(msg.relatedMetrics) : '';
 
     const contentHtml = isUser
@@ -904,37 +933,23 @@ function toggleSrc(uid, btn) {
 function md(t) {
     if (!t) return '';
     let s = esc(t);
-
-    // Code blocks
     s = s.replace(/```[\s\S]*?```/g, m => {
         const inner = m.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
         return `<pre><code>${inner}</code></pre>`;
     });
-
-    // Inline code
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Bold
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic
     s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-
-    // Bullet lists
     s = s.replace(/((?:^|\n)[ \t]*[-•][ \t].+)+/g, block => {
         const items = block.split('\n').filter(l => l.trim());
         const lis   = items.map(l => `<li>${l.replace(/^[ \t]*[-•][ \t]/, '')}</li>`).join('');
         return `<ul>${lis}</ul>`;
     });
-
-    // Numbered lists
     s = s.replace(/((?:^|\n)[ \t]*\d+\.[ \t].+)+/g, block => {
         const items = block.split('\n').filter(l => l.trim());
         const lis   = items.map(l => `<li>${l.replace(/^[ \t]*\d+\.[ \t]/, '')}</li>`).join('');
         return `<ol>${lis}</ol>`;
     });
-
-    // Paragraphs
     return s.split(/\n\n+/).map(block => {
         block = block.trim();
         if (!block) return '';
