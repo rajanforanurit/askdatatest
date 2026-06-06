@@ -550,17 +550,13 @@ async function doWebSearch(btnId) {
         WS_STORE.delete(btnId);
 
     } catch (e) {
-        // SearXNG CORS not enabled yet — show helpful message
-        const isCors = e instanceof TypeError && e.message.toLowerCase().includes('fetch');
-        res.innerHTML = isCors
-            ? `<p style="font-size:12px;color:var(--red);margin-top:6px">
-                Search blocked by CORS. Enable CORS on your SearXNG container
-                (set <code>SEARXNG_SERVER_HTTP_ALLOWED_ORIGIN=*</code> in Azure).
-               </p>`
-            : `<p style="font-size:12px;color:var(--red);margin-top:6px">${esc(e.message)}</p>`;
-        // Restore button so user can retry
-        btn.style.display = '';
-        btn.disabled = false;
+    console.error('[doWebSearch] error:', e);
+    res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">
+        Search failed: ${esc(e.message)}. Check browser console for details.
+    </p>`;
+    btn.style.display = '';
+    btn.disabled = false;
+}
     }
     scrollBottom();
 }
