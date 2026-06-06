@@ -368,8 +368,10 @@
 
 <script>
 // ── CONFIG ─────────────────────────────────────────────
-const API   = 'https://anuritchatbackend.vercel.app';
-const TOP_K = 6;
+// ── CONFIG ─────────────────────────────────────────────
+const API      = 'https://anuritchatbackend.vercel.app';
+const TOP_K    = 6;
+const SEARXNG  = 'https://searchxngaskdata.jollywave-6f5db9ec.centralindia.azurecontainerapps.io';
 
 // ── STATE ──────────────────────────────────────────────
 let sess = null;
@@ -377,7 +379,7 @@ let busy = false;
 let activeConversationId = null;
 let conversations = [];
 
-// ── FIX: safe store for web-search data (avoids JSON in HTML attributes) ──
+// Safe store for web-search data (avoids JSON in HTML attributes)
 // keyed by btnId → { question, answer, resId }
 const WS_STORE = new Map();
 
@@ -462,13 +464,18 @@ async function doLogin() {
     }
 }
 
-// ── WEB SEARCH ─────────────────────────────────────────
-// FIX: pass only a plain btnId — question/answer stored safely in WS_STORE
+// ── WEB SEARCH (browser → SearXNG directly) ────────────
+const STRIP_PREFIXES = /^(what\s+(is|are|was|were)\s+(the\s+)?(definition\s+(of|for)\s+)?|define\s+|explain\s+|tell\s+me\s+(about\s+)?|how\s+(is|are|do\s+you\s+)?calculate(\s+the)?\s+|describe\s+|meaning\s+of\s+)/i;
+
+function buildSearchQuery(question) {
+    const base = (question || '').trim().replace(STRIP_PREFIXES, '').replace(/[?!.]+$/, '').trim();
+    return base ? `${base} example` : 'example';
+}
+
 function appendWebSearchButton(box, question, answer) {
     const btnId = 'wsb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
     const resId = 'wsr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
 
-    // Store data in JS Map — safe no matter what characters are in question/answer
     WS_STORE.set(btnId, { question, answer, resId });
 
     box.insertAdjacentHTML('beforeend', `
@@ -487,14 +494,15 @@ function appendWebSearchButton(box, question, answer) {
 async function doWebSearch(btnId) {
     const stored = WS_STORE.get(btnId);
     if (!stored) return;
-    const { question, answer, resId } = stored;
+    const { question, resId } = stored;
 
     const wrapper = document.getElementById(btnId);
-    const btn = wrapper ? wrapper.querySelector('.ws-btn') : null;
-    const res = document.getElementById(resId);
+    const btn     = wrapper ? wrapper.querySelector('.ws-btn') : null;
+    const res     = document.getElementById(resId);
     if (!btn || !res) return;
 
-    // FIX: hide button immediately and show blinking "Searching" animation
+    const query = buildSearchQuery(question);
+
     btn.style.display = 'none';
     res.innerHTML = `
         <div class="ws-searching">
@@ -506,39 +514,50 @@ async function doWebSearch(btnId) {
     scrollBottom();
 
     try {
-        const r = await fetch(`${API}/api/web-search`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sess.apiKey}`
-            },
-            // FIX: JSON.stringify in body is safe — only the btnId attr was the problem
-            body: JSON.stringify({ question, answer })
-        });
-        const d = await r.json();
-        if (!r.ok || !d.success) throw new Error(d.error || 'Search failed');
+        // Call SearXNG directly from the browser — no Vercel proxy involved
+        const url = new URL(`${SEARXNG}/search`);
+        url.searchParams.set('q', query);
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('categories', 'general');
 
-        if (!d.results || !d.results.length) {
-            res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">No results found for "<em>${esc(d.query)}</em>"</p>`;
+        const r = await fetch(url.toString(), {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+        });
+
+        if (!r.ok) throw new Error(`Search returned HTTP ${r.status}`);
+
+        const d = await r.json();
+        const results = (d.results || []).slice(0, 5);
+
+        if (!results.length) {
+            res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">No results found for "<em>${esc(query)}</em>"</p>`;
             WS_STORE.delete(btnId);
             return;
         }
 
-        const items = d.results.map(item => `
+        const items = results.map(item => `
             <div class="ws-item">
                 <a class="ws-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
                 <div class="ws-url">${esc(item.url)}</div>
-                ${item.content ? `<div class="ws-snippet">${esc(item.content.slice(0, 160))}…</div>` : ''}
+                ${item.content ? `<div class="ws-snippet">${esc((item.content || '').slice(0, 160))}…</div>` : ''}
             </div>`).join('');
 
         res.innerHTML = `
-            <div class="ws-label">Results for: <em>${esc(d.query)}</em></div>
+            <div class="ws-label">Results for: <em>${esc(query)}</em></div>
             <div class="ws-list">${items}</div>`;
 
-        WS_STORE.delete(btnId); // cleanup
+        WS_STORE.delete(btnId);
 
     } catch (e) {
-        res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">${esc(e.message)}</p>`;
+        // SearXNG CORS not enabled yet — show helpful message
+        const isCors = e instanceof TypeError && e.message.toLowerCase().includes('fetch');
+        res.innerHTML = isCors
+            ? `<p style="font-size:12px;color:var(--red);margin-top:6px">
+                Search blocked by CORS. Enable CORS on your SearXNG container
+                (set <code>SEARXNG_SERVER_HTTP_ALLOWED_ORIGIN=*</code> in Azure).
+               </p>`
+            : `<p style="font-size:12px;color:var(--red);margin-top:6px">${esc(e.message)}</p>`;
         // Restore button so user can retry
         btn.style.display = '';
         btn.disabled = false;
@@ -842,7 +861,6 @@ async function send() {
             relatedMetrics: d.relatedMetrics || []
         }, msgbox);
 
-        // Append web search button after answer — safe because WS_STORE holds the data
         if (d.answer && d.answer.length > 20) {
             appendWebSearchButton(msgbox, rawQ, d.answer);
         }
