@@ -368,616 +368,604 @@
 
 <script>
 // ── CONFIG ─────────────────────────────────────────────
-// ── CONFIG ─────────────────────────────────────────────
-const API      = 'https://anuritchatbackend.vercel.app';
-const TOP_K    = 6;
-const SEARXNG  = 'https://searchxngaskdata.jollywave-6f5db9ec.centralindia.azurecontainerapps.io';
+const API   = 'https://anuritchatbackend.vercel.app'
+const TOP_K = 6
 
 // ── STATE ──────────────────────────────────────────────
-let sess = null;
-let busy = false;
-let activeConversationId = null;
-let conversations = [];
+let sess = null
+let busy = false
+let activeConversationId = null
+let conversations = []
 
 // Safe store for web-search data (avoids JSON in HTML attributes)
-// keyed by btnId → { question, answer, resId }
-const WS_STORE = new Map();
+const WS_STORE = new Map()
 
 // ── LOCAL STORAGE ──────────────────────────────────────
-function saveSession() { if (sess) localStorage.setItem('anuritSession', JSON.stringify(sess)); }
+function saveSession() { if (sess) localStorage.setItem('anuritSession', JSON.stringify(sess)) }
 function loadSession() {
-    try {
-        const saved = localStorage.getItem('anuritSession');
-        if (saved) { sess = JSON.parse(saved); return true; }
-    } catch (e) { localStorage.removeItem('anuritSession'); }
-    return false;
+  try {
+    const saved = localStorage.getItem('anuritSession')
+    if (saved) { sess = JSON.parse(saved); return true }
+  } catch (e) { localStorage.removeItem('anuritSession') }
+  return false
 }
-function clearSession() { localStorage.removeItem('anuritSession'); }
+function clearSession() { localStorage.removeItem('anuritSession') }
 
 // ── THEME ──────────────────────────────────────────────
 function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('anuritTheme', theme);
-    const btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+  document.documentElement.setAttribute('data-theme', theme)
+  localStorage.setItem('anuritTheme', theme)
+  const btn = document.getElementById('theme-toggle')
+  if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark'
 }
 function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    setTheme(current === 'light' ? 'dark' : 'light');
+  const current = document.documentElement.getAttribute('data-theme') || 'light'
+  setTheme(current === 'light' ? 'dark' : 'light')
 }
 
 // ── HELPERS ────────────────────────────────────────────
 function esc(s) {
-    return String(s || '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 function showErr(msg) {
-    const el = document.getElementById('lerr');
-    el.textContent = msg; el.classList.add('show');
+  const el = document.getElementById('lerr')
+  el.textContent = msg; el.classList.add('show')
 }
 
 // ── INIT ───────────────────────────────────────────────
 window.onload = () => {
-    const savedTheme = localStorage.getItem('anuritTheme') || 'light';
-    setTheme(savedTheme);
-    if (loadSession()) {
-        bootApp();
-    } else {
-        document.getElementById('login-screen').style.display = 'flex';
-    }
-};
+  const savedTheme = localStorage.getItem('anuritTheme') || 'light'
+  setTheme(savedTheme)
+  if (loadSession()) {
+    bootApp()
+  } else {
+    document.getElementById('login-screen').style.display = 'flex'
+  }
+}
 
-document.getElementById('f-apikey').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('f-apikey').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
 
 // ── LOGIN ──────────────────────────────────────────────
 async function doLogin() {
-    const apiKey = document.getElementById('f-apikey').value.trim();
-    const btn    = document.getElementById('btn-signin');
-    document.getElementById('lerr').classList.remove('show');
+  const apiKey = document.getElementById('f-apikey').value.trim()
+  const btn    = document.getElementById('btn-signin')
+  document.getElementById('lerr').classList.remove('show')
 
-    if (!apiKey) return showErr('Please enter your API key.');
-    if (!apiKey.startsWith('rak_')) return showErr('Invalid API key format. Keys begin with rak_');
+  if (!apiKey) return showErr('Please enter your API key.')
+  if (!apiKey.startsWith('rak_')) return showErr('Invalid API key format. Keys begin with rak_')
 
-    btn.classList.add('loading'); btn.disabled = true;
+  btn.classList.add('loading'); btn.disabled = true
 
-    try {
-        const r = await fetch(`${API}/chat/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Login failed');
+  try {
+    const r = await fetch(`${API}/chat/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey })
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'Login failed')
 
-        sess = {
-            apiKey,
-            clientId: d.client.clientId,
-            name: d.client.name || d.client.clientId
-        };
-        saveSession();
-        bootApp();
-    } catch (e) {
-        showErr(e.message || 'Could not connect. Please try again.');
-    } finally {
-        btn.classList.remove('loading'); btn.disabled = false;
+    sess = {
+      apiKey,
+      clientId: d.client.clientId,
+      name: d.client.name || d.client.clientId
     }
+    saveSession()
+    bootApp()
+  } catch (e) {
+    showErr(e.message || 'Could not connect. Please try again.')
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false
+  }
 }
 
-// ── WEB SEARCH (browser → SearXNG directly) ────────────
-const STRIP_PREFIXES = /^(what\s+(is|are|was|were)\s+(the\s+)?(definition\s+(of|for)\s+)?|define\s+|explain\s+|tell\s+me\s+(about\s+)?|how\s+(is|are|do\s+you\s+)?calculate(\s+the)?\s+|describe\s+|meaning\s+of\s+)/i;
-
-function buildSearchQuery(question) {
-    const base = (question || '').trim().replace(STRIP_PREFIXES, '').replace(/[?!.]+$/, '').trim();
-    return base ? `${base} example` : 'example';
-}
-
+// ── WEB SEARCH (via backend → DuckDuckGo) ─────────────
 function appendWebSearchButton(box, question, answer) {
-    const btnId = 'wsb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-    const resId = 'wsr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  const btnId = 'wsb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
+  const resId = 'wsr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
 
-    WS_STORE.set(btnId, { question, answer, resId });
+  WS_STORE.set(btnId, { question, answer, resId })
 
-    box.insertAdjacentHTML('beforeend', `
-        <div class="msg assistant" id="${btnId}">
-            <div class="avatar" style="visibility:hidden">A</div>
-            <div class="msg-body">
-                <button class="ws-btn" data-btn-id="${btnId}" onclick="doWebSearch(this.dataset.btnId)">
-                    🔍 Find Web Examples
-                </button>
-                <div id="${resId}"></div>
-            </div>
-        </div>`);
-    scrollBottom();
+  box.insertAdjacentHTML('beforeend', `
+    <div class="msg assistant" id="${btnId}">
+      <div class="avatar" style="visibility:hidden">A</div>
+      <div class="msg-body">
+        <button class="ws-btn" data-btn-id="${btnId}" onclick="doWebSearch(this.dataset.btnId)">
+          🔍 Find Web Examples
+        </button>
+        <div id="${resId}"></div>
+      </div>
+    </div>`)
+  scrollBottom()
 }
 
 async function doWebSearch(btnId) {
-    const stored = WS_STORE.get(btnId);
-    if (!stored) return;
-    const { question, resId } = stored;
+  const stored = WS_STORE.get(btnId)
+  if (!stored) return
+  const { question, resId } = stored
 
-    const wrapper = document.getElementById(btnId);
-    const btn     = wrapper ? wrapper.querySelector('.ws-btn') : null;
-    const res     = document.getElementById(resId);
-    if (!btn || !res) return;
+  const wrapper = document.getElementById(btnId)
+  const btn     = wrapper ? wrapper.querySelector('.ws-btn') : null
+  const res     = document.getElementById(resId)
+  if (!btn || !res) return
 
-    const query = buildSearchQuery(question);
+  btn.style.display = 'none'
+  res.innerHTML = `
+    <div class="ws-searching">
+      <div class="ws-searching-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <span class="ws-searching-text">Searching the web…</span>
+    </div>`
+  scrollBottom()
 
-    btn.style.display = 'none';
+  try {
+    const r = await fetch(`${API}/api/web-search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sess.apiKey}`
+      },
+      body: JSON.stringify({ question, answer: stored.answer })
+    })
+
+    if (!r.ok) throw new Error(`Server returned HTTP ${r.status}`)
+
+    const d = await r.json()
+
+    if (!d.success || !d.results || !d.results.length) {
+      const errMsg = d.error || 'No results found.'
+      res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">${esc(errMsg)}</p>`
+      WS_STORE.delete(btnId)
+      return
+    }
+
+    const items = d.results.map(item => `
+      <div class="ws-item">
+        <a class="ws-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
+        <div class="ws-url">${esc(item.url)}</div>
+        ${item.content ? `<div class="ws-snippet">${esc(item.content.slice(0, 160))}…</div>` : ''}
+      </div>`).join('')
+
     res.innerHTML = `
-        <div class="ws-searching">
-            <div class="ws-searching-dots">
-                <span></span><span></span><span></span>
-            </div>
-            <span class="ws-searching-text">Searching the web…</span>
-        </div>`;
-    scrollBottom();
+      <div class="ws-label">Results for: <em>${esc(d.query || question)}</em></div>
+      <div class="ws-list">${items}</div>`
 
-    try {
-        // Call SearXNG directly from the browser — no Vercel proxy involved
-        const url = new URL(`${SEARXNG}/search`);
-        url.searchParams.set('q', query);
-        url.searchParams.set('format', 'json');
-        url.searchParams.set('categories', 'general');
+    WS_STORE.delete(btnId)
 
-        const r = await fetch(url.toString(), {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-        });
-
-        if (!r.ok) throw new Error(`Search returned HTTP ${r.status}`);
-
-        const d = await r.json();
-        const results = (d.results || []).slice(0, 5);
-
-        if (!results.length) {
-            res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">No results found for "<em>${esc(query)}</em>"</p>`;
-            WS_STORE.delete(btnId);
-            return;
-        }
-
-        const items = results.map(item => `
-            <div class="ws-item">
-                <a class="ws-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
-                <div class="ws-url">${esc(item.url)}</div>
-                ${item.content ? `<div class="ws-snippet">${esc((item.content || '').slice(0, 160))}…</div>` : ''}
-            </div>`).join('');
-
-        res.innerHTML = `
-            <div class="ws-label">Results for: <em>${esc(query)}</em></div>
-            <div class="ws-list">${items}</div>`;
-
-        WS_STORE.delete(btnId);
-
-    } catch (e) {
-    console.error('[doWebSearch] error:', e);
+  } catch (e) {
+    console.error('[doWebSearch] error:', e)
     res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">
-        Search failed: ${esc(e.message)}. Check browser console for details.
-    </p>`;
-    btn.style.display = '';
-    btn.disabled = false;
-}
-    scrollBottom();
+      Search failed: ${esc(e.message)}.
+    </p>`
+    // Re-show button so user can retry
+    btn.style.display = ''
+    btn.disabled = false
+  }
+
+  scrollBottom()
 }
 
 // ── BOOT & LOGOUT ──────────────────────────────────────
 function bootApp() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').classList.add('on');
-    const name = sess.name || sess.clientId;
-    document.getElementById('bar-name').textContent = name;
-    document.getElementById('greet-name').textContent = name.split(' ')[0] || name;
-    document.getElementById('side-cid').textContent = sess.clientId || '—';
-    loadHistoryList();
-    setTimeout(() => document.getElementById('qinput').focus(), 150);
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').classList.add('on')
+  const name = sess.name || sess.clientId
+  document.getElementById('bar-name').textContent = name
+  document.getElementById('greet-name').textContent = name.split(' ')[0] || name
+  document.getElementById('side-cid').textContent = sess.clientId || '—'
+  loadHistoryList()
+  setTimeout(() => document.getElementById('qinput').focus(), 150)
 }
 
 function doLogout() {
-    clearSession();
-    sess = null; busy = false; activeConversationId = null; conversations = [];
-    WS_STORE.clear();
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('app').classList.remove('on');
-    document.getElementById('f-apikey').value = '';
-    document.getElementById('lerr').classList.remove('show');
-    document.getElementById('messages').innerHTML = '';
-    document.getElementById('messages').style.display = 'none';
-    document.getElementById('empty').classList.remove('gone');
-    document.getElementById('retrieved-count').textContent = '';
-    document.getElementById('history-list').innerHTML = '';
+  clearSession()
+  sess = null; busy = false; activeConversationId = null; conversations = []
+  WS_STORE.clear()
+  document.getElementById('login-screen').style.display = 'flex'
+  document.getElementById('app').classList.remove('on')
+  document.getElementById('f-apikey').value = ''
+  document.getElementById('lerr').classList.remove('show')
+  document.getElementById('messages').innerHTML = ''
+  document.getElementById('messages').style.display = 'none'
+  document.getElementById('empty').classList.remove('gone')
+  document.getElementById('retrieved-count').textContent = ''
+  document.getElementById('history-list').innerHTML = ''
 }
 
 // ── RELATED METRICS ────────────────────────────────────
 function buildRelatedMetricsHtml(metrics) {
-    if (!metrics || !metrics.length) return '';
-    const rows = metrics.map(m => {
-        const name = esc(m.measure || '');
-        const fullDef = m.shortDescription || '';
-        const truncated = fullDef.length > 120;
-        const safeName = (m.measure || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        const defDisplay = truncated
-            ? esc(fullDef.slice(0, 120)) + `... <span class="rm-more" onclick="askRelatedMetric('${safeName}')">More...</span>`
-            : esc(fullDef);
-        const tbl   = m.table ? `<div class="rm-table-tag">${esc(m.table)}</div>` : '';
-        const score = m.confidenceScore != null
-            ? `<span style="font-size:10px;color:var(--text3);font-family:var(--mono);float:right">${m.confidenceScore}%</span>` : '';
-        return `<tr>
-            <td>
-                <span class="rm-name" onclick="askRelatedMetric('${safeName}')">${name}</span>
-                <span class="rm-badge related">Related</span>
-                ${tbl}
-            </td>
-            <td><span class="rm-def">${defDisplay}</span>${score}</td>
-        </tr>`;
-    }).join('');
-    return `<div class="related-metrics-wrap">
-        <div class="related-metrics-head">
-            <span class="related-metrics-icon">🔍</span>
-            <span class="related-metrics-title">Related Metrics</span>
-            <span class="related-metrics-badge">Associated operational metrics</span>
-        </div>
-        <table class="related-metrics-table">
-            <thead><tr><th>Metric</th><th>Definition</th></tr></thead>
-            <tbody>${rows}</tbody>
-        </table>
-    </div>`;
+  if (!metrics || !metrics.length) return ''
+  const rows = metrics.map(m => {
+    const name = esc(m.measure || '')
+    const fullDef = m.shortDescription || ''
+    const truncated = fullDef.length > 120
+    const safeName = (m.measure || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    const defDisplay = truncated
+      ? esc(fullDef.slice(0, 120)) + `... <span class="rm-more" onclick="askRelatedMetric('${safeName}')">More...</span>`
+      : esc(fullDef)
+    const tbl   = m.table ? `<div class="rm-table-tag">${esc(m.table)}</div>` : ''
+    const score = m.confidenceScore != null
+      ? `<span style="font-size:10px;color:var(--text3);font-family:var(--mono);float:right">${m.confidenceScore}%</span>` : ''
+    return `<tr>
+      <td>
+        <span class="rm-name" onclick="askRelatedMetric('${safeName}')">${name}</span>
+        <span class="rm-badge related">Related</span>
+        ${tbl}
+      </td>
+      <td><span class="rm-def">${defDisplay}</span>${score}</td>
+    </tr>`
+  }).join('')
+  return `<div class="related-metrics-wrap">
+    <div class="related-metrics-head">
+      <span class="related-metrics-icon">🔍</span>
+      <span class="related-metrics-title">Related Metrics</span>
+      <span class="related-metrics-badge">Associated operational metrics</span>
+    </div>
+    <table class="related-metrics-table">
+      <thead><tr><th>Metric</th><th>Definition</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`
 }
 
 function askRelatedMetric(metricName) {
-    const inp = document.getElementById('qinput');
-    if (!inp || busy) return;
-    inp.value = `Define ${metricName}`;
-    grow(inp);
-    send();
+  const inp = document.getElementById('qinput')
+  if (!inp || busy) return
+  inp.value = `Define ${metricName}`
+  grow(inp)
+  send()
 }
 
 // ── HISTORY ────────────────────────────────────────────
 function renderHistoryEmpty() {
-    document.getElementById('history-list').innerHTML = `
-        <div class="history-empty">
-            <div class="history-empty-icon">📄</div>
-            <p>No conversations yet.<br>Start asking to see history.</p>
-        </div>`;
+  document.getElementById('history-list').innerHTML = `
+    <div class="history-empty">
+      <div class="history-empty-icon">📄</div>
+      <p>No conversations yet.<br>Start asking to see history.</p>
+    </div>`
 }
 
 function renderHistorySkeletons() {
-    document.getElementById('history-list').innerHTML =
-        [1,2,3].map(() => `<div class="hist-skeleton"></div>`).join('');
+  document.getElementById('history-list').innerHTML =
+    [1,2,3].map(() => `<div class="hist-skeleton"></div>`).join('')
 }
 
 async function loadHistoryList() {
-    if (!sess) return;
-    renderHistorySkeletons();
-    try {
-        const r = await fetch(`${API}/chat/conversations/list`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` }
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        conversations = d.conversations || [];
-        renderHistoryList();
-    } catch (e) {
-        console.warn('History load failed:', e.message);
-        renderHistoryEmpty();
-    }
+  if (!sess) return
+  renderHistorySkeletons()
+  try {
+    const r = await fetch(`${API}/chat/conversations/list`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` }
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error)
+    conversations = d.conversations || []
+    renderHistoryList()
+  } catch (e) {
+    console.warn('History load failed:', e.message)
+    renderHistoryEmpty()
+  }
 }
 
 function renderHistoryList() {
-    const list = document.getElementById('history-list');
-    if (!conversations.length) { renderHistoryEmpty(); return; }
-    list.innerHTML = conversations.map(c => buildHistItem(c)).join('');
+  const list = document.getElementById('history-list')
+  if (!conversations.length) { renderHistoryEmpty(); return }
+  list.innerHTML = conversations.map(c => buildHistItem(c)).join('')
 }
 
 function buildHistItem(c) {
-    const date     = formatHistDate(c.updatedAt || c.createdAt);
-    const isActive = c._id === activeConversationId;
-    return `<div class="hist-item ${isActive ? 'active' : ''}" id="hi-${c._id}" onclick="openConversation('${c._id}')">
-        <div class="hist-item-body">
-            <div class="hist-item-title" id="hit-${c._id}">${esc(c.title || 'Untitled')}</div>
-            <div class="hist-item-meta">${date}</div>
-        </div>
-        <div class="hist-item-actions">
-            <button class="hist-act-btn" title="Rename" onclick="startRename(event,'${c._id}')">✏️</button>
-            <button class="hist-act-btn del" title="Delete" onclick="deleteConversation(event,'${c._id}')">🗑️</button>
-        </div>
-    </div>`;
+  const date     = formatHistDate(c.updatedAt || c.createdAt)
+  const isActive = c._id === activeConversationId
+  return `<div class="hist-item ${isActive ? 'active' : ''}" id="hi-${c._id}" onclick="openConversation('${c._id}')">
+    <div class="hist-item-body">
+      <div class="hist-item-title" id="hit-${c._id}">${esc(c.title || 'Untitled')}</div>
+      <div class="hist-item-meta">${date}</div>
+    </div>
+    <div class="hist-item-actions">
+      <button class="hist-act-btn" title="Rename" onclick="startRename(event,'${c._id}')">✏️</button>
+      <button class="hist-act-btn del" title="Delete" onclick="deleteConversation(event,'${c._id}')">🗑️</button>
+    </div>
+  </div>`
 }
 
 function formatHistDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso), now = new Date();
-    const diff = Math.floor((now - d) / 86400000);
-    if (diff === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    if (diff === 1) return 'Yesterday';
-    if (diff < 7)  return d.toLocaleDateString([], { weekday: 'short' });
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (!iso) return ''
+  const d = new Date(iso), now = new Date()
+  const diff = Math.floor((now - d) / 86400000)
+  if (diff === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (diff === 1) return 'Yesterday'
+  if (diff < 7)  return d.toLocaleDateString([], { weekday: 'short' })
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
 function setActiveHistItem(id) {
-    document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('active'));
-    const el = document.getElementById(`hi-${id}`);
-    if (el) el.classList.add('active');
+  document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('active'))
+  const el = document.getElementById(`hi-${id}`)
+  if (el) el.classList.add('active')
 }
 
 // ── OPEN CONVERSATION ──────────────────────────────────
 async function openConversation(id) {
-    if (busy || activeConversationId === id) return;
-    try {
-        const r = await fetch(`${API}/chat/conversations/get`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
-            body: JSON.stringify({ conversationId: id })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
+  if (busy || activeConversationId === id) return
+  try {
+    const r = await fetch(`${API}/chat/conversations/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
+      body: JSON.stringify({ conversationId: id })
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error)
 
-        activeConversationId = id;
-        const msgbox = document.getElementById('messages');
-        msgbox.innerHTML = '';
-        document.getElementById('empty').classList.add('gone');
-        msgbox.style.display = 'flex';
-        msgbox.style.flexDirection = 'column';
-        msgbox.style.gap = '28px';
+    activeConversationId = id
+    const msgbox = document.getElementById('messages')
+    msgbox.innerHTML = ''
+    document.getElementById('empty').classList.add('gone')
+    msgbox.style.display = 'flex'
+    msgbox.style.flexDirection = 'column'
+    msgbox.style.gap = '28px'
 
-        for (const m of (d.messages || [])) {
-            appendMsg({ role: m.role, content: m.content, sources: m.sources || [], timestamp: m.timestamp }, msgbox);
-        }
-        setActiveHistItem(id);
-        scrollBottom();
-    } catch (e) { console.warn('openConv failed:', e.message); }
+    for (const m of (d.messages || [])) {
+      appendMsg({ role: m.role, content: m.content, sources: m.sources || [], timestamp: m.timestamp }, msgbox)
+    }
+    setActiveHistItem(id)
+    scrollBottom()
+  } catch (e) { console.warn('openConv failed:', e.message) }
 }
 
 // ── NEW CHAT ───────────────────────────────────────────
 function startNewChat() {
-    activeConversationId = null;
-    const msgbox = document.getElementById('messages');
-    msgbox.innerHTML = ''; msgbox.style.display = 'none';
-    document.getElementById('empty').classList.remove('gone');
-    document.getElementById('retrieved-count').textContent = '';
-    document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('qinput').focus();
+  activeConversationId = null
+  const msgbox = document.getElementById('messages')
+  msgbox.innerHTML = ''; msgbox.style.display = 'none'
+  document.getElementById('empty').classList.remove('gone')
+  document.getElementById('retrieved-count').textContent = ''
+  document.querySelectorAll('.hist-item').forEach(el => el.classList.remove('active'))
+  document.getElementById('qinput').focus()
 }
 
 // ── RENAME ─────────────────────────────────────────────
 function startRename(e, id) {
-    e.stopPropagation();
-    const titleEl = document.getElementById(`hit-${id}`);
-    if (!titleEl) return;
-    const oldTitle = titleEl.textContent;
-    titleEl.innerHTML = `<input class="hist-rename-input" value="${esc(oldTitle)}" id="rename-inp-${id}" />`;
-    const inp = document.getElementById(`rename-inp-${id}`);
-    inp.focus(); inp.select();
-    inp.addEventListener('keydown', async ev => {
-        if (ev.key === 'Enter') { ev.preventDefault(); await commitRename(id, inp.value.trim(), oldTitle); }
-        if (ev.key === 'Escape') { titleEl.textContent = oldTitle; }
-    });
-    inp.addEventListener('blur', () => {
-        setTimeout(() => { if (document.getElementById(`rename-inp-${id}`)) commitRename(id, inp.value.trim(), oldTitle); }, 150);
-    });
+  e.stopPropagation()
+  const titleEl = document.getElementById(`hit-${id}`)
+  if (!titleEl) return
+  const oldTitle = titleEl.textContent
+  titleEl.innerHTML = `<input class="hist-rename-input" value="${esc(oldTitle)}" id="rename-inp-${id}" />`
+  const inp = document.getElementById(`rename-inp-${id}`)
+  inp.focus(); inp.select()
+  inp.addEventListener('keydown', async ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); await commitRename(id, inp.value.trim(), oldTitle) }
+    if (ev.key === 'Escape') { titleEl.textContent = oldTitle }
+  })
+  inp.addEventListener('blur', () => {
+    setTimeout(() => { if (document.getElementById(`rename-inp-${id}`)) commitRename(id, inp.value.trim(), oldTitle) }, 150)
+  })
 }
 
 async function commitRename(id, newTitle, oldTitle) {
-    const titleEl = document.getElementById(`hit-${id}`);
-    if (!newTitle || newTitle === oldTitle) { if (titleEl) titleEl.textContent = oldTitle; return; }
-    try {
-        const r = await fetch(`${API}/chat/conversations/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
-            body: JSON.stringify({ conversationId: id, title: newTitle })
-        });
-        if (!r.ok) throw new Error();
-        if (titleEl) titleEl.textContent = newTitle;
-        const c = conversations.find(x => x._id === id);
-        if (c) c.title = newTitle;
-    } catch { if (titleEl) titleEl.textContent = oldTitle; }
+  const titleEl = document.getElementById(`hit-${id}`)
+  if (!newTitle || newTitle === oldTitle) { if (titleEl) titleEl.textContent = oldTitle; return }
+  try {
+    const r = await fetch(`${API}/chat/conversations/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
+      body: JSON.stringify({ conversationId: id, title: newTitle })
+    })
+    if (!r.ok) throw new Error()
+    if (titleEl) titleEl.textContent = newTitle
+    const c = conversations.find(x => x._id === id)
+    if (c) c.title = newTitle
+  } catch { if (titleEl) titleEl.textContent = oldTitle }
 }
 
 // ── DELETE ─────────────────────────────────────────────
 async function deleteConversation(e, id) {
-    e.stopPropagation();
-    if (!confirm('Delete this conversation?')) return;
-    try {
-        const r = await fetch(`${API}/chat/conversations/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
-            body: JSON.stringify({ conversationId: id })
-        });
-        if (!r.ok) throw new Error();
-        conversations = conversations.filter(c => c._id !== id);
-        document.getElementById(`hi-${id}`)?.remove();
-        if (activeConversationId === id) startNewChat();
-        if (!conversations.length) renderHistoryEmpty();
-    } catch { alert('Failed to delete conversation.'); }
+  e.stopPropagation()
+  if (!confirm('Delete this conversation?')) return
+  try {
+    const r = await fetch(`${API}/chat/conversations/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
+      body: JSON.stringify({ conversationId: id })
+    })
+    if (!r.ok) throw new Error()
+    conversations = conversations.filter(c => c._id !== id)
+    document.getElementById(`hi-${id}`)?.remove()
+    if (activeConversationId === id) startNewChat()
+    if (!conversations.length) renderHistoryEmpty()
+  } catch { alert('Failed to delete conversation.') }
 }
 
 // ── SEND ───────────────────────────────────────────────
 async function send() {
-    const inp  = document.getElementById('qinput');
-    const rawQ = inp.value.trim();
-    if (!rawQ || busy || !sess) return;
+  const inp  = document.getElementById('qinput')
+  const rawQ = inp.value.trim()
+  if (!rawQ || busy || !sess) return
 
-    inp.value = ''; grow(inp);
-    busy = true; document.getElementById('sendbtn').disabled = true;
+  inp.value = ''; grow(inp)
+  busy = true; document.getElementById('sendbtn').disabled = true
 
-    const msgbox = document.getElementById('messages');
-    document.getElementById('empty').classList.add('gone');
-    msgbox.style.display = 'flex';
-    msgbox.style.flexDirection = 'column';
-    msgbox.style.gap = '28px';
+  const msgbox = document.getElementById('messages')
+  document.getElementById('empty').classList.add('gone')
+  msgbox.style.display = 'flex'
+  msgbox.style.flexDirection = 'column'
+  msgbox.style.gap = '28px'
 
-    appendMsg({ role: 'user', content: rawQ }, msgbox);
+  appendMsg({ role: 'user', content: rawQ }, msgbox)
 
-    const tid = 'ty' + Date.now();
-    msgbox.insertAdjacentHTML('beforeend', `
-        <div class="msg assistant" id="${tid}">
-            <div class="avatar">A</div>
-            <div class="msg-body">
-                <div class="typing-wrap">
-                    <div class="typing">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                </div>
-            </div>
-        </div>`);
-    scrollBottom();
+  const tid = 'ty' + Date.now()
+  msgbox.insertAdjacentHTML('beforeend', `
+    <div class="msg assistant" id="${tid}">
+      <div class="avatar">A</div>
+      <div class="msg-body">
+        <div class="typing-wrap">
+          <div class="typing">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>`)
+  scrollBottom()
 
-    try {
-        const r = await fetch(`${API}/chat/message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
-            body: JSON.stringify({
-                query: rawQ,
-                topK: TOP_K,
-                conversationId: activeConversationId
-            })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Request failed');
+  try {
+    const r = await fetch(`${API}/chat/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.apiKey}` },
+      body: JSON.stringify({
+        query: rawQ,
+        topK: TOP_K,
+        conversationId: activeConversationId
+      })
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'Request failed')
 
-        if (d.conversationId && !activeConversationId) {
-            activeConversationId = d.conversationId;
-            await loadHistoryList();
-            setActiveHistItem(activeConversationId);
-        }
-
-        if (d.sources && d.sources.length) {
-            document.getElementById('retrieved-count').textContent =
-                `· ${d.sources.length} source${d.sources.length !== 1 ? 's' : ''} retrieved`;
-        }
-
-        document.getElementById(tid)?.remove();
-
-        const answer = cleanAnswer(d.answer || '', d.sources || []);
-        appendMsg({
-            role: 'assistant',
-            content: answer,
-            sources: d.sources || [],
-            relatedMetrics: d.relatedMetrics || []
-        }, msgbox);
-
-        if (d.answer && d.answer.length > 20) {
-            appendWebSearchButton(msgbox, rawQ, d.answer);
-        }
-
-    } catch (e) {
-        document.getElementById(tid)?.remove();
-        appendMsg({ role: 'assistant', content: 'Something went wrong. Please try again.', sources: [] }, msgbox);
-    } finally {
-        busy = false;
-        document.getElementById('sendbtn').disabled = false;
-        scrollBottom();
-        document.getElementById('qinput').focus();
+    if (d.conversationId && !activeConversationId) {
+      activeConversationId = d.conversationId
+      await loadHistoryList()
+      setActiveHistItem(activeConversationId)
     }
+
+    if (d.sources && d.sources.length) {
+      document.getElementById('retrieved-count').textContent =
+        `· ${d.sources.length} source${d.sources.length !== 1 ? 's' : ''} retrieved`
+    }
+
+    document.getElementById(tid)?.remove()
+
+    const answer = cleanAnswer(d.answer || '', d.sources || [])
+    appendMsg({
+      role: 'assistant',
+      content: answer,
+      sources: d.sources || [],
+      relatedMetrics: d.relatedMetrics || []
+    }, msgbox)
+
+    if (d.answer && d.answer.length > 20) {
+      appendWebSearchButton(msgbox, rawQ, d.answer)
+    }
+
+  } catch (e) {
+    document.getElementById(tid)?.remove()
+    appendMsg({ role: 'assistant', content: 'Something went wrong. Please try again.', sources: [] }, msgbox)
+  } finally {
+    busy = false
+    document.getElementById('sendbtn').disabled = false
+    scrollBottom()
+    document.getElementById('qinput').focus()
+  }
 }
 
 // ── CLEAN ANSWER ───────────────────────────────────────
 function cleanAnswer(answer, sources) {
-    if (!answer) return answer;
-    let cleaned = answer.replace(/\[\s*\d+(?:\s*,\s*\d+)*\s*\]/g, '').trim();
-    const fallbackPatterns = [
-        /the (provided |given |available )?context does not (define|contain|mention|explain|include|describe|have|provide)/i,
-        /is not (defined|mentioned|described|explained|included) in the (provided |given |available )?context/i,
-        /no (information|data|definition|detail) (is |was )?(provided|found|available|present) (in|within) the (provided |given |available )?context/i,
-        /the (document|context|provided (context|documents?)) (do(es)? not|doesn't) (define|contain|mention|explain|describe)/i,
-        /based on the (provided |given |available )?context[^,]*,(?: i cannot| there is no| it is not)/i,
-    ];
-    const isFallback = fallbackPatterns.some(p => p.test(cleaned));
-    if (isFallback && sources.length > 0) {
-        cleaned = "The information is available in your documents — here's what was found in the relevant sections. You may want to rephrase your question with slightly different wording for a more targeted answer.";
-    }
-    return cleaned.replace(/\s{2,}/g, ' ').trim();
+  if (!answer) return answer
+  let cleaned = answer.replace(/\[\s*\d+(?:\s*,\s*\d+)*\s*\]/g, '').trim()
+  const fallbackPatterns = [
+    /the (provided |given |available )?context does not (define|contain|mention|explain|include|describe|have|provide)/i,
+    /is not (defined|mentioned|described|explained|included) in the (provided |given |available )?context/i,
+    /no (information|data|definition|detail) (is |was )?(provided|found|available|present) (in|within) the (provided |given |available )?context/i,
+    /the (document|context|provided (context|documents?)) (do(es)? not|doesn't) (define|contain|mention|explain|describe)/i,
+    /based on the (provided |given |available )?context[^,]*,(?: i cannot| there is no| it is not)/i,
+  ]
+  const isFallback = fallbackPatterns.some(p => p.test(cleaned))
+  if (isFallback && sources.length > 0) {
+    cleaned = "The information is available in your documents — here's what was found in the relevant sections. You may want to rephrase your question with slightly different wording for a more targeted answer."
+  }
+  return cleaned.replace(/\s{2,}/g, ' ').trim()
 }
 
-function clearChat() { startNewChat(); }
+function clearChat() { startNewChat() }
 
 // ── RENDER MESSAGE ─────────────────────────────────────
 function appendMsg(msg, box) {
-    const isUser = msg.role === 'user';
-    const av     = isUser ? (sess?.name?.[0]?.toUpperCase() || 'U') : 'A';
-    const ts     = msg.timestamp ? new Date(msg.timestamp) : new Date();
-    const now    = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isUser = msg.role === 'user'
+  const av     = isUser ? (sess?.name?.[0]?.toUpperCase() || 'U') : 'A'
+  const ts     = msg.timestamp ? new Date(msg.timestamp) : new Date()
+  const now    = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-    let srcHtml = '';
-    if (!isUser && msg.sources && msg.sources.length) {
-        const uid   = 'sp' + Date.now() + Math.random().toString(36).slice(2, 6);
-        const items = msg.sources.map((s, i) => `
-            <div class="src-item">
-                <div class="src-top">
-                    <span class="src-idx">${i + 1}</span>
-                    <span class="src-file">${esc(s.source_file || 'unknown')}</span>
-                    <span class="src-score">${s.score != null ? (s.score > 1 ? s.score + '%' : (s.score * 100).toFixed(0) + '%') : '—'}</span>
-                </div>
-                <div class="src-preview">${esc(s.preview || '')}</div>
-            </div>`).join('');
-        srcHtml = `
-            <button class="src-btn" onclick="toggleSrc('${uid}',this)">
-                <span class="src-arrow">›</span>&nbsp;${msg.sources.length} document section${msg.sources.length !== 1 ? 's' : ''} referenced
-            </button>
-            <div class="src-panel" id="${uid}">${items}</div>`;
-    }
+  let srcHtml = ''
+  if (!isUser && msg.sources && msg.sources.length) {
+    const uid   = 'sp' + Date.now() + Math.random().toString(36).slice(2, 6)
+    const items = msg.sources.map((s, i) => `
+      <div class="src-item">
+        <div class="src-top">
+          <span class="src-idx">${i + 1}</span>
+          <span class="src-file">${esc(s.source_file || 'unknown')}</span>
+          <span class="src-score">${s.score != null ? (s.score > 1 ? s.score + '%' : (s.score * 100).toFixed(0) + '%') : '—'}</span>
+        </div>
+        <div class="src-preview">${esc(s.preview || '')}</div>
+      </div>`).join('')
+    srcHtml = `
+      <button class="src-btn" onclick="toggleSrc('${uid}',this)">
+        <span class="src-arrow">›</span>&nbsp;${msg.sources.length} document section${msg.sources.length !== 1 ? 's' : ''} referenced
+      </button>
+      <div class="src-panel" id="${uid}">${items}</div>`
+  }
 
-    const relatedMetricsHtml = (!isUser && msg.relatedMetrics && msg.relatedMetrics.length)
-        ? buildRelatedMetricsHtml(msg.relatedMetrics) : '';
+  const relatedMetricsHtml = (!isUser && msg.relatedMetrics && msg.relatedMetrics.length)
+    ? buildRelatedMetricsHtml(msg.relatedMetrics) : ''
 
-    const contentHtml = isUser
-        ? `<div class="bubble">${md(msg.content)}</div>`
-        : `<div class="asst-text">${md(msg.content)}</div>`;
+  const contentHtml = isUser
+    ? `<div class="bubble">${md(msg.content)}</div>`
+    : `<div class="asst-text">${md(msg.content)}</div>`
 
-    box.insertAdjacentHTML('beforeend', `
-        <div class="msg ${msg.role}">
-            <div class="avatar">${av}</div>
-            <div class="msg-body">
-                ${contentHtml}
-                ${relatedMetricsHtml}
-                ${srcHtml}
-                <div class="msg-meta">${now}</div>
-            </div>
-        </div>`);
-    scrollBottom();
+  box.insertAdjacentHTML('beforeend', `
+    <div class="msg ${msg.role}">
+      <div class="avatar">${av}</div>
+      <div class="msg-body">
+        ${contentHtml}
+        ${relatedMetricsHtml}
+        ${srcHtml}
+        <div class="msg-meta">${now}</div>
+      </div>
+    </div>`)
+  scrollBottom()
 }
 
 function toggleSrc(uid, btn) {
-    document.getElementById(uid).classList.toggle('open');
-    btn.classList.toggle('open');
+  document.getElementById(uid).classList.toggle('open')
+  btn.classList.toggle('open')
 }
 
 // ── MARKDOWN ───────────────────────────────────────────
 function md(t) {
-    if (!t) return '';
-    let s = esc(t);
-    s = s.replace(/```[\s\S]*?```/g, m => {
-        const inner = m.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
-        return `<pre><code>${inner}</code></pre>`;
-    });
-    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-    s = s.replace(/((?:^|\n)[ \t]*[-•][ \t].+)+/g, block => {
-        const items = block.split('\n').filter(l => l.trim());
-        const lis   = items.map(l => `<li>${l.replace(/^[ \t]*[-•][ \t]/, '')}</li>`).join('');
-        return `<ul>${lis}</ul>`;
-    });
-    s = s.replace(/((?:^|\n)[ \t]*\d+\.[ \t].+)+/g, block => {
-        const items = block.split('\n').filter(l => l.trim());
-        const lis   = items.map(l => `<li>${l.replace(/^[ \t]*\d+\.[ \t]/, '')}</li>`).join('');
-        return `<ol>${lis}</ol>`;
-    });
-    return s.split(/\n\n+/).map(block => {
-        block = block.trim();
-        if (!block) return '';
-        if (block.startsWith('<ul') || block.startsWith('<ol') || block.startsWith('<pre')) return block;
-        return `<p>${block.replace(/\n/g, '<br>')}</p>`;
-    }).join('');
+  if (!t) return ''
+  let s = esc(t)
+  s = s.replace(/```[\s\S]*?```/g, m => {
+    const inner = m.replace(/^```\w*\n?/, '').replace(/\n?```$/, '')
+    return `<pre><code>${inner}</code></pre>`
+  })
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  s = s.replace(/((?:^|\n)[ \t]*[-•][ \t].+)+/g, block => {
+    const items = block.split('\n').filter(l => l.trim())
+    const lis   = items.map(l => `<li>${l.replace(/^[ \t]*[-•][ \t]/, '')}</li>`).join('')
+    return `<ul>${lis}</ul>`
+  })
+  s = s.replace(/((?:^|\n)[ \t]*\d+\.[ \t].+)+/g, block => {
+    const items = block.split('\n').filter(l => l.trim())
+    const lis   = items.map(l => `<li>${l.replace(/^[ \t]*\d+\.[ \t]/, '')}</li>`).join('')
+    return `<ol>${lis}</ol>`
+  })
+  return s.split(/\n\n+/).map(block => {
+    block = block.trim()
+    if (!block) return ''
+    if (block.startsWith('<ul') || block.startsWith('<ol') || block.startsWith('<pre')) return block
+    return `<p>${block.replace(/\n/g, '<br>')}</p>`
+  }).join('')
 }
 
 function scrollBottom() {
-    const b = document.getElementById('messages');
-    if (b) b.scrollTop = b.scrollHeight;
+  const b = document.getElementById('messages')
+  if (b) b.scrollTop = b.scrollHeight
 }
 
-function onKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
-function grow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px'; }
+function onKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
+function grow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px' }
 </script>
 </body>
 </html>
