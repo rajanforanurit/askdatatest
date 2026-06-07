@@ -461,7 +461,7 @@ async function doLogin() {
   }
 }
 
-// ── WEB SEARCH (via backend → DuckDuckGo) ─────────────
+// ── WEB SEARCH (via backend → SearXNG) ────────────────
 function appendWebSearchButton(box, question, answer) {
   const btnId = 'wsb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
   const resId = 'wsr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
@@ -491,7 +491,8 @@ async function doWebSearch(btnId) {
   const res     = document.getElementById(resId)
   if (!btn || !res) return
 
-  btn.style.display = 'none'
+  btn.disabled = true
+  btn.style.opacity = '0.5'
   res.innerHTML = `
     <div class="ws-searching">
       <div class="ws-searching-dots">
@@ -516,9 +517,14 @@ async function doWebSearch(btnId) {
     const d = await r.json()
 
     if (!d.success || !d.results || !d.results.length) {
-      const errMsg = d.error || 'No results found.'
-      res.innerHTML = `<p style="font-size:12px;color:var(--text3);margin-top:8px">${esc(errMsg)}</p>`
+      const errMsg = d.error || 'No results found for this query.'
+      res.innerHTML = `
+        <div style="margin-top:8px;padding:10px 13px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;">
+          <p style="font-size:12px;color:var(--text3);margin:0">${esc(errMsg)}</p>
+        </div>`
+      // Remove from store — don't allow retry on "no results"
       WS_STORE.delete(btnId)
+      btn.style.display = 'none'
       return
     }
 
@@ -526,7 +532,7 @@ async function doWebSearch(btnId) {
       <div class="ws-item">
         <a class="ws-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
         <div class="ws-url">${esc(item.url)}</div>
-        ${item.content ? `<div class="ws-snippet">${esc(item.content.slice(0, 160))}…</div>` : ''}
+        ${item.content ? `<div class="ws-snippet">${esc(item.content.slice(0, 200))}</div>` : ''}
       </div>`).join('')
 
     res.innerHTML = `
@@ -534,15 +540,18 @@ async function doWebSearch(btnId) {
       <div class="ws-list">${items}</div>`
 
     WS_STORE.delete(btnId)
+    btn.style.display = 'none'
 
   } catch (e) {
     console.error('[doWebSearch] error:', e)
-    res.innerHTML = `<p style="font-size:12px;color:var(--red);margin-top:6px">
-      Search failed: ${esc(e.message)}.
-    </p>`
-    // Re-show button so user can retry
-    btn.style.display = ''
+    res.innerHTML = `
+      <div style="margin-top:8px;padding:10px 13px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <p style="font-size:12px;color:var(--red);margin:0">Search failed: ${esc(e.message)}</p>
+        <button class="ws-btn" style="margin:0;flex-shrink:0" onclick="doWebSearch('${btnId}')">Retry</button>
+      </div>`
+    // Re-enable original button for retry fallback
     btn.disabled = false
+    btn.style.opacity = ''
   }
 
   scrollBottom()
